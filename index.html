@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Command Counter</title>
+</head>
+
+<body>
+    <h2>Voice Command Goal Counter</h2>
+    <button id="start">Start Listening</button>
+    <button id="reset">Reset current match</button>
+    <div>Настя's Goals: <span id="nastya">0</span></div>
+    <div>Артур's Goals: <span id="artur">0</span></div>
+    <div>Previous Counts:</div>
+    <ul id="previousCounts"></ul>
+
+    <script>
+        const startBtn = document.getElementById('start');
+        const resetBtn = document.getElementById('reset');
+        const nastyaCount = document.getElementById('nastya');
+        const arturCount = document.getElementById('artur');
+        const previousCounts = document.getElementById('previousCounts');
+        const synth = window.speechSynthesis;
+
+        let nastya = 0;
+        let artur = 0;
+
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'uk-UA';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        const sayOutLoud = (message) => {
+            const utterThis = new SpeechSynthesisUtterance(message);
+            utterThis.lang = 'uk-UA';
+            synth.speak(utterThis);
+        };
+
+        const checkMilestones = () => {
+            if (nastya === 10 || artur === 10 || nastya === 20 || artur === 20) {
+                sayOutLoud(`Рахунок голів: ${nastya}, ${artur}.`);
+            }
+            if (nastya === 21) {
+                sayOutLoud(`Настя перемогла!`);
+                resetScore();
+                recognition.stop();
+            } else if (artur === 21) {
+                sayOutLoud(`Артур переміг!`);
+                resetScore();
+                recognition.stop();
+            }
+        };
+
+        const resetScore = () => {
+            const li = document.createElement('li');
+            li.textContent = `Настя: ${nastya}, Артур: ${artur}`;
+            previousCounts.appendChild(li);
+            nastya = 0;
+            artur = 0;
+            nastyaCount.textContent = nastya;
+            arturCount.textContent = artur;
+        }
+
+        startBtn.addEventListener('click', () => {
+            recognition.start();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            resetScore();
+        })
+
+        recognition.onresult = (event) => {
+            const last = event.results.length - 1;
+            const command = event.results[last][0].transcript.trim();
+            console.log('Command: ', command);
+
+            if (/Настя/.test(command)) {
+                nastya++;
+                nastyaCount.textContent = nastya;
+                sayOutLoud('Є!');
+            } else if (/Артур/.test(command)) {
+                artur++;
+                arturCount.textContent = artur;
+                sayOutLoud('Є!');
+            } else if (/Є зупинись/.test(command)) {
+                resetScore();
+                sayOutLoud('Є зупинись');
+                return;
+            } else {
+                sayOutLoud('Повтори!');
+                return;
+            }
+
+            checkMilestones();
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Recognition error', event.error);
+        };
+
+        recognition.onend = () => {
+            recognition.start(); // Keep the service running
+        };
+    </script>
+</body>
+
+</html>
